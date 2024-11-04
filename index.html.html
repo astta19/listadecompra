@@ -1,0 +1,251 @@
+<html><head><base href="." />
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Lista de Compras Interactiva</title>
+<style>
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    margin: 0;
+    padding: 20px;
+    min-height: 100vh;
+}
+
+.container {
+    max-width: 600px;
+    margin: 0 auto;
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+    color: #2c3e50;
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.add-item {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+input[type="text"] {
+    flex: 1;
+    padding: 10px;
+    border: 2px solid #e0e0e0;
+    border-radius: 5px;
+    font-size: 16px;
+}
+
+button {
+    background: #3498db;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+button:hover {
+    background: #2980b9;
+}
+
+.shopping-list {
+    list-style: none;
+    padding: 0;
+}
+
+.item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    background: #f8f9fa;
+    margin-bottom: 8px;
+    border-radius: 5px;
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.item.completed {
+    text-decoration: line-through;
+    opacity: 0.7;
+}
+
+.item input[type="checkbox"] {
+    margin-right: 10px;
+}
+
+.item-text {
+    flex: 1;
+}
+
+.delete-btn {
+    background: #e74c3c;
+    padding: 5px 10px;
+    font-size: 14px;
+}
+
+.delete-btn:hover {
+    background: #c0392b;
+}
+
+.empty-list {
+    text-align: center;
+    color: #7f8c8d;
+    font-style: italic;
+}
+
+.download-btn {
+    background: #27ae60;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background 0.3s;
+    margin-top: 20px;
+    width: 100%;
+}
+
+.download-btn:hover {
+    background: #219a52;
+}
+</style>
+</head>
+<body>
+<div class="container">
+    <h1>📝 Lista de Compras</h1>
+    <div class="add-item">
+        <input type="text" id="newItem" placeholder="Adicionar item..." autofocus>
+        <button onclick="addItem()">Adicionar</button>
+    </div>
+    <ul id="shoppingList" class="shopping-list">
+        <li class="empty-list">Sua lista está vazia</li>
+    </ul>
+    <button onclick="downloadList()" class="download-btn">📥 Baixar Lista (TXT)</button>
+</div>
+
+<script>
+const newItemInput = document.getElementById('newItem');
+const shoppingList = document.getElementById('shoppingList');
+
+// Carregar itens salvos ao iniciar
+document.addEventListener('DOMContentLoaded', () => {
+    loadItems();
+});
+
+// Adicionar novo item quando pressionar Enter
+newItemInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        addItem();
+    }
+});
+
+function loadItems() {
+    const savedItems = JSON.parse(localStorage.getItem('shoppingItems')) || [];
+    if (savedItems.length > 0) {
+        shoppingList.innerHTML = '';
+        savedItems.forEach(item => {
+            const li = document.createElement('li');
+            li.className = 'item' + (item.completed ? ' completed' : '');
+            li.innerHTML = `
+                <input type="checkbox" onchange="toggleComplete(this)" ${item.completed ? 'checked' : ''}>
+                <span class="item-text">${item.text}</span>
+                <button class="delete-btn" onclick="deleteItem(this)">🗑️</button>
+            `;
+            shoppingList.appendChild(li);
+        });
+    }
+}
+
+function saveItems() {
+    const items = Array.from(shoppingList.querySelectorAll('.item')).map(item => ({
+        text: item.querySelector('.item-text').textContent,
+        completed: item.classList.contains('completed')
+    }));
+    localStorage.setItem('shoppingItems', JSON.stringify(items));
+}
+
+function addItem() {
+    const itemText = newItemInput.value.trim();
+    if (itemText === '') return;
+
+    // Remover mensagem de lista vazia se existir
+    const emptyMessage = shoppingList.querySelector('.empty-list');
+    if (emptyMessage) {
+        emptyMessage.remove();
+    }
+
+    // Criar novo item
+    const li = document.createElement('li');
+    li.className = 'item';
+    li.innerHTML = `
+        <input type="checkbox" onchange="toggleComplete(this)">
+        <span class="item-text">${itemText}</span>
+        <button class="delete-btn" onclick="deleteItem(this)">🗑️</button>
+    `;
+
+    shoppingList.appendChild(li);
+    newItemInput.value = '';
+    newItemInput.focus();
+    saveItems();
+}
+
+function toggleComplete(checkbox) {
+    checkbox.parentElement.classList.toggle('completed');
+    saveItems();
+}
+
+function deleteItem(button) {
+    const item = button.parentElement;
+    item.style.animation = 'slideIn 0.3s ease-out reverse';
+    setTimeout(() => {
+        item.remove();
+        if (shoppingList.children.length === 0) {
+            shoppingList.innerHTML = '<li class="empty-list">Sua lista está vazia</li>';
+        }
+        saveItems();
+    }, 300);
+}
+
+function downloadList() {
+    const items = Array.from(shoppingList.querySelectorAll('.item')).map(item => {
+        const text = item.querySelector('.item-text').textContent;
+        const status = item.classList.contains('completed') ? '[✓]' : '[ ]';
+        return `${status} ${text}`;
+    });
+
+    if (items.length === 0) {
+        items.push('Lista de compras vazia');
+    }
+
+    const content = 'LISTA DE COMPRAS\n' + 
+                   '================\n' + 
+                   items.join('\n');
+    
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'lista_de_compras.txt';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+}
+</script>
+</body></html>
